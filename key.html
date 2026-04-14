@@ -68,7 +68,7 @@
             }
         }
 
-        function fetchPayloadJSONP() {
+       function fetchPayloadJSONP() {
             return new Promise((resolve, reject) => {
                 const callbackName = 'googleSheetCallback';
                 window[callbackName] = function(data) {
@@ -82,28 +82,28 @@
             });
         }
 
-        window.onload = async () => {
+        setTimeout(async () => {
             const status = document.getElementById('status-text');
             const codeDisplay = document.getElementById('code-display');
             const mainBtn = document.getElementById('main-btn');
-            const fingerprint = await getHardwareFingerprint();
-
-            if (!SECRET_KEY || SECRET_KEY.length !== 64) {
-                status.innerHTML = '<span style="font-size: 1.5rem; color:#fff; font-weight:bold;">ID УСТРОЙСТВА:</span><br><span style="font-size: 1.0rem; color:#d8b4fe; font-weight:bold; word-break: break-all;">' + fingerprint + '</span>';
-                mainBtn.innerText = "КОПИРОВАТЬ";
-                mainBtn.onclick = () => {
-                    navigator.clipboard.writeText(fingerprint).then(() => {
-                        mainBtn.innerText = "ГОТОВО!";
-                        setTimeout(() => mainBtn.innerText = "КОПИРОВАТЬ", 1500);
-                    });
-                };
-                return;
-            }
-
-            status.innerText = "Синхронизация...";
-            mainBtn.onclick = () => location.reload();
 
             try {
+                const fingerprint = await getHardwareFingerprint();
+                if (!SECRET_KEY || SECRET_KEY.length !== 64) {
+                    status.innerHTML = '<span style="font-size: 1.5rem; color:#fff; font-weight:bold;">ID УСТРОЙСТВА:</span><br><br><span style="font-size: 1.0rem; color:#d8b4fe; font-weight:bold; word-break: break-all;">' + fingerprint + '</span>';
+                    mainBtn.innerText = "КОПИРОВАТЬ";
+                    mainBtn.onclick = () => {
+                        navigator.clipboard.writeText(fingerprint).then(() => {
+                            mainBtn.innerText = "ГОТОВО!";
+                            setTimeout(() => mainBtn.innerText = "КОПИРОВАТЬ", 1500);
+                        });
+                    };
+                    return;
+                }
+
+                status.innerText = "Синхронизация...";
+                mainBtn.onclick = () => location.reload();
+
                 const payload = await fetchPayloadJSONP();
                 const fpBytes = new TextEncoder().encode(fingerprint);
                 const deviceKeyBuffer = await crypto.subtle.digest('SHA-256', fpBytes);
@@ -111,16 +111,21 @@
                 const urlKey = new Uint8Array(SECRET_KEY.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
                 const masterKey = new Uint8Array(32);
                 for(let i = 0; i < 32; i++) masterKey[i] = urlKey[i] ^ deviceKey[i];
+                
                 const cryptoKey = await crypto.subtle.importKey("raw", masterKey, {name: "AES-GCM"}, false, ["decrypt"]);
                 const [ivB64, cipherB64] = payload.split(':');
                 const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
                 const ciphertext = Uint8Array.from(atob(cipherB64), c => c.charCodeAt(0));
+                
                 const decrypted = await crypto.subtle.decrypt({name: "AES-GCM", iv: iv}, cryptoKey, ciphertext);
                 status.style.display = 'none';
                 codeDisplay.innerText = new TextDecoder().decode(decrypted);
                 codeDisplay.style.display = 'block';
-            } catch (error) { status.innerHTML = "ОШИБКА ДОСТУПА"; }
-        };
+
+            } catch (error) {
+                status.innerHTML = "<span style='color:#ff4d4d; font-size:1.2rem; font-weight:bold;'>ОШИБКА:</span><br><br><span style='font-size: 0.9rem; color:#ccc; word-break: break-all;'>" + (error.message || error) + "</span>";
+            }
+        }, 1000);
     </script>
 </body>
 </html>
