@@ -90,7 +90,7 @@
             try {
                 const fingerprint = await getHardwareFingerprint();
                 if (!SECRET_KEY || SECRET_KEY.length !== 64) {
-                    status.innerHTML = '<span style="font-size: 1.5rem; color:#fff; font-weight:bold;">ID УСТРОЙСТВА:</span><br><br><span style="font-size: 1.0rem; color:#d8b4fe; font-weight:bold; word-break: break-all;">' + fingerprint + '</span>';
+                    status.innerHTML = '<span style="font-size: 1.5rem; color:#fff; font-weight:bold;">ID УСТРОЙСТВА:</span><br><span style="font-size: 1.0rem; color:#d8b4fe; font-weight:bold; word-break: break-all;">' + fingerprint + '</span>';
                     mainBtn.innerText = "КОПИРОВАТЬ";
                     mainBtn.onclick = () => {
                         navigator.clipboard.writeText(fingerprint).then(() => {
